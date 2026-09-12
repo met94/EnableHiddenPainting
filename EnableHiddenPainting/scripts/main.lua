@@ -50,6 +50,19 @@ local DefenseState = {
     timerHandle = nil
 }
 
+local function ResetDefenseState()
+    if DefenseState.timerHandle then
+        CancelDelayedAction(DefenseState.timerHandle)
+    end
+    DefenseState.paintingEntity = nil
+    DefenseState.accumulatedTime = 0
+    DefenseState.isInZone = false
+    DefenseState.defenseActive = false
+    DefenseState.defenseComplete = false
+    DefenseState.timerHandle = nil
+    Log("DefenseState reset")
+end
+
 local function IsInDefenseBox(playerLoc, entityLoc, forwardVec, rightVec)
     local dx = playerLoc.X - entityLoc.X
     local dy = playerLoc.Y - entityLoc.Y
@@ -203,3 +216,15 @@ RegisterHook("/Script/Starbreeze.SBZMissionState:RewardCompleteExperienceObjecti
         OnHackComplete()
     end
 end)
+
+RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnPlayableLevelInitialized", function(Context)
+    Log("OnPlayableLevelInitialized fired")
+    ResetDefenseState()
+end)
+
+RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnRestartLevelStarted", function(Context)
+    Log("OnRestartLevelStarted fired")
+    ResetDefenseState()
+end)
+
+//TODO: reset state on unload?
