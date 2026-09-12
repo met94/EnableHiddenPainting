@@ -4,7 +4,7 @@ local DEBUG_LOG = false
 local MANAGERS_OFFICE_CLASS = "R_ArtGallery_ManagersOffice_C"
 local PAINTING_ENTITY_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/G_ArtGallery/G_ArtGallery_Scripting.G_ArtGallery_Scripting:PersistentLevel.BP_InteractablePainting_Special"
 
-local DEFENSE_DURATION = 60 * 10 * 3 --30 minutes in seconds
+local DEFENSE_DURATION = 60 * 10 --10 minutes in seconds
 local CHECK_INTERVAL = 1000
 
 local BOX_FORWARD_OFFSET = 10
