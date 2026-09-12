@@ -1,4 +1,5 @@
 local MOD_NAME = "EnableHiddenPainting"
+local DEBUG_LOG = false
 
 local MANAGERS_OFFICE_CLASS = "R_ArtGallery_ManagersOffice_C"
 local PAINTING_ENTITY_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/G_ArtGallery/G_ArtGallery_Scripting.G_ArtGallery_Scripting:PersistentLevel.BP_InteractablePainting_Special"
@@ -12,10 +13,12 @@ local BOX_HALF_WIDTH = 800
 local BOX_HALF_HEIGHT = 100
 
 local function Log(Msg)
+    if not DEBUG_LOG then return end
     print(string.format("[%s] %s\n", MOD_NAME, Msg))
 end
 
 local function LogFmt(Fmt, ...)
+    if not DEBUG_LOG then return end
     print(string.format("[%s] " .. Fmt .. "\n", MOD_NAME, ...))
 end
 
