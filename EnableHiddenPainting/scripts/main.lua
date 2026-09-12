@@ -85,7 +85,7 @@ end
 local function OnDefenseComplete()
     DefenseState.defenseComplete = true
     LogFmt("Defense complete! (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-    SendChatMessage("And... we're in. Security grid is down. That Latrell is ours. Now get back to the manager's office -- there's a hidden release mechanism on the wall. Look for the buttons. I'll guide you through.")
+    SendChatMessage("<Good>And... we're in.</> <Hud_01>Security grid is down.</> <Skills1>That Latrell is ours.</> <Notation>Now get back to the manager's office -- there's a hidden release mechanism on the wall. Look for the buttons. I'll guide you through.</>")
     TriggerRemoteDeploy()
 end
 
@@ -107,10 +107,10 @@ local function CheckDefenseZone()
 
     if DefenseState.isInZone and not wasInZone then
         LogFmt("Entered defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-        SendChatMessage("You're in range. Starting sensor loop now. Keep your position -- I need you steady.")
+        SendChatMessage("<Good>You're in range.</> <Notation>Starting sensor loop now. Keep your position -- I need you steady.</>")
     elseif not DefenseState.isInZone and wasInZone then
         LogFmt("Left defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-        SendChatMessage("You moved out of range! System's resetting. Get back to the painting -- fast!")
+        SendChatMessage("<Bad>You moved out of range!</> <Hostile>System's resetting. Get back to the painting -- fast!</>")
     end
 
     if DefenseState.isInZone then
@@ -121,11 +121,11 @@ local function CheckDefenseZone()
         local prevPct = math.floor(prevTime / DEFENSE_DURATION * 100)
         local currPct = math.floor(DefenseState.accumulatedTime / DEFENSE_DURATION * 100)
         if currPct >= 25 and prevPct < 25 then
-            SendChatMessage("Quarter cycle complete. Sensors are buying it so far. Keep holding.")
+            SendChatMessage("<Hud_01>Quarter cycle complete.</> <Notation>Sensors are buying it so far. Keep holding.</>")
         elseif currPct >= 50 and prevPct < 50 then
-            SendChatMessage("Halfway there. You're doing great. Almost got it.")
+            SendChatMessage("<Hud_01>Halfway there.</> <Skills1>You're doing great. Almost got it.</>")
         elseif currPct >= 75 and prevPct < 75 then
-            SendChatMessage("Three quarters. Hang tight -- we're in the home stretch.")
+            SendChatMessage("<Hud_01>Three quarters.</> <Notation>Hang tight -- we're in the home stretch.</>")
         end
 
         if DefenseState.accumulatedTime >= DEFENSE_DURATION then
@@ -188,7 +188,7 @@ local function OnHackComplete()
     pcall(function()
         ExecuteWithDelay(2000, function()
             ExecuteInGameThread(function()
-                SendChatMessage("Hold on -- I'm seeing something else in the building inventory. There's a Shanda Latrell original on the floor below, near Exhibition Room E2. Nine figures easy. But it's got a proximity security grid -- you'll need to stay close for about ten minutes while I loop the sensors. I'll mark the location.")
+                SendChatMessage("<Notation>Hold on -- I'm seeing something else in the building inventory.</> There's a <Skills1>Shanda Latrell</> original on the floor below, near <Object>Exhibition Room E2</>. Nine figures easy. But it's got a <Bad>proximity security grid</> -- you'll need to stay close for about <Skills1>thirty minutes</> while I loop the sensors. I'll mark the location.")
                 StartDefenseTimer()
             end)
         end)
