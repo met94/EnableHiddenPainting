@@ -1,11 +1,9 @@
 local MOD_NAME = "EnableHiddenPainting"
 
 local MANAGERS_OFFICE_CLASS = "R_ArtGallery_ManagersOffice_C"
-local MANAGERS_OFFICE_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/Random_ArtGallery/RandomizedRoom_1.R_ArtGallery_ManagersOffice_C"
-
 local PAINTING_ENTITY_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/G_ArtGallery/G_ArtGallery_Scripting.G_ArtGallery_Scripting:PersistentLevel.BP_InteractablePainting_Special"
 
-local DEFENSE_DURATION = 600
+local DEFENSE_DURATION = 60 * 10 * 3 --30 minutes in seconds
 local CHECK_INTERVAL = 1000
 
 local BOX_FORWARD_OFFSET = 10
@@ -44,6 +42,7 @@ local DefenseState = {
     paintingEntity = nil,
     accumulatedTime = 0,
     isInZone = false,
+    defenseActive = false,
     defenseComplete = false,
     timerHandle = nil
 }
@@ -67,13 +66,28 @@ local function IsInDefenseBox(playerLoc, entityLoc, forwardVec, rightVec)
         and math.abs(upDist) <= BOX_HALF_HEIGHT
 end
 
+local function TriggerRemoteDeploy()
+    pcall(function()
+        local office = FindFirstOf(MANAGERS_OFFICE_CLASS)
+        if office and office:IsValid() then
+            LogFmt("Found managers office: %s", office:GetFullName())
+            office:RemoteDeploy()
+            Log("RemoteDeploy called successfully")
+        else
+            Log("Managers office not found")
+        end
+    end)
+end
+
 local function OnDefenseComplete()
     DefenseState.defenseComplete = true
-    LogFmt("Defense complete! Unlocking painting... (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
+    LogFmt("Defense complete! (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
     SendChatMessage("And... we're in. Security grid is down. That Latrell is ours. Now get back to the manager's office -- there's a hidden release mechanism on the wall. Look for the buttons. I'll guide you through.")
+    TriggerRemoteDeploy()
 end
 
 local function CheckDefenseZone()
+    if not DefenseState.defenseActive then return end
     if DefenseState.defenseComplete then return end
     if not DefenseState.paintingEntity or not DefenseState.paintingEntity:IsValid() then return end
 
@@ -118,15 +132,19 @@ local function CheckDefenseZone()
 end
 
 local function FindPaintingEntity()
-    local entity = FindFirstOf("BP_InteractablePainting_MediumValue_C")
-    if entity and entity:IsValid() then
-        local fullName = entity:GetFullName()
-        if string.find(fullName, "BP_InteractablePainting_Special") then
-            return entity
+    local entities = FindAllOf("BP_InteractablePainting_MediumValue_C")
+    if entities then
+        for _, entity in ipairs(entities) do
+            if entity:IsValid() then
+                local fullName = entity:GetFullName()
+                if string.find(fullName, "BP_InteractablePainting_Special") then
+                    return entity
+                end
+            end
         end
     end
 
-    entity = StaticFindObject(PAINTING_ENTITY_PATH)
+    local entity = StaticFindObject(PAINTING_ENTITY_PATH)
     if entity and entity:IsValid() then
         return entity
     end
@@ -142,56 +160,43 @@ local function StartDefenseTimer()
     Log("Defense timer started")
 end
 
-local Hooked = false
-local PaintingFound = false
-
-local function HookManagersOffice()
-    if Hooked then return end
-    Hooked = true
-
-    RegisterHook(MANAGERS_OFFICE_PATH .. ":ExecuteUbergraph_R_ArtGallery_ManagersOffice", function(self, EntryPoint)
-        local EntryPointValue = EntryPoint:get()
-        LogFmt("Intercepted ExecuteUbergraph from: , EntryPoint: %d", EntryPointValue)
-
-        if DefenseState.defenseComplete then
-            if EntryPointValue == 1202 then
-                Log("EntryPoint 1202 detected, triggering 1898")
-                pcall(function()
-                    self:RemoteDeploy()
-                end)
-            end
-        else
-            LogFmt("Defense not complete (%.1f/%.1fs), blocking interaction", DefenseState.accumulatedTime, DEFENSE_DURATION)
-            SendChatMessage("Not yet -- the grid is still active. Get back to the painting and hold your ground.")
-        end
-    end)
-
-    Log("Successfully registered hook for R_ArtGallery_ManagersOffice!")
-end
-
-local function TryFindPainting()
-    if PaintingFound then return end
-
-    local entity = FindPaintingEntity()
-    if entity then
-        PaintingFound = true
-        DefenseState.paintingEntity = entity
-        LogFmt("Found painting entity: %s", entity:GetFullName())
-        StartDefenseTimer()
+local function OnHackComplete()
+    if DefenseState.defenseActive then
+        Log("OnHackComplete: already active, skipping")
+        return
     end
+
+    Log("OnHackComplete: finding painting entity")
+    local entity = FindPaintingEntity()
+    if not entity then
+        Log("Painting entity not found yet, retrying in 1s")
+        ExecuteWithDelay(1000, function()
+            ExecuteInGameThread(function()
+                OnHackComplete()
+            end)
+        end)
+        return
+    end
+
+    DefenseState.paintingEntity = entity
+    DefenseState.defenseActive = true
+    LogFmt("Found painting entity: %s", entity:GetFullName())
+
+    pcall(function()
+        ExecuteWithDelay(2000, function()
+            ExecuteInGameThread(function()
+                SendChatMessage("Hold on -- I'm seeing something else in the building inventory. There's a Shanda Latrell original on the floor below, near Exhibition Room E2. Nine figures easy. But it's got a proximity security grid -- you'll need to stay close for about ten minutes while I loop the sensors. I'll mark the location.")
+                StartDefenseTimer()
+            end)
+        end)
+    end)
+    Log("Hack detected, starting defense sequence")
 end
 
-local Existing = FindFirstOf(MANAGERS_OFFICE_CLASS)
-if Existing and Existing:IsValid() then
-    LogFmt("Found existing instance: %s", Existing:GetFullName())
-    HookManagersOffice()
-    TryFindPainting()
-else
-    Log("No existing instance found, waiting for NotifyOnNewObject")
-end
-
-NotifyOnNewObject(MANAGERS_OFFICE_PATH, function(ConstructedObject)
-    LogFmt("ConstructedObject: %s", ConstructedObject:GetFullName())
-    HookManagersOffice()
-    TryFindPainting()
+RegisterHook("/Script/Starbreeze.SBZMissionState:RewardCompleteExperienceObjective", function(Context, ObjectiveName)
+    local objective = ObjectiveName:get():ToString()
+    LogFmt("Objective completed: %s", objective)
+    if objective == "search_manifest" then
+        OnHackComplete()
+    end
 end)
