@@ -1,5 +1,5 @@
 local MOD_NAME = "EnableHiddenPainting"
-local DEBUG_LOG = true
+local DEBUG_LOG = false
 
 local MANAGERS_OFFICE_CLASS = "R_ArtGallery_ManagersOffice_C"
 local PAINTING_ENTITY_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/G_ArtGallery/G_ArtGallery_Scripting.G_ArtGallery_Scripting:PersistentLevel.BP_InteractablePainting_Special"
@@ -227,4 +227,4 @@ RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnRestartLevelStarted", func
     ResetDefenseState()
 end)
 
-//TODO: reset state on unload?
+--TODO: reset state on unload?
