@@ -70,7 +70,7 @@ end
 local function OnDefenseComplete()
     DefenseState.defenseComplete = true
     LogFmt("Defense complete! Unlocking painting... (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-    SendChatMessage(string.format("Defense complete! Painting unlocked! (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+    SendChatMessage("And... we're in. Security grid is down. That Latrell is ours. Now get back to the manager's office -- there's a hidden release mechanism on the wall. Look for the buttons. I'll guide you through.")
 end
 
 local function CheckDefenseZone()
@@ -90,10 +90,10 @@ local function CheckDefenseZone()
 
     if DefenseState.isInZone and not wasInZone then
         LogFmt("Entered defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-        SendChatMessage(string.format("Defense started (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+        SendChatMessage("You're in range. Starting sensor loop now. Keep your position -- I need you steady.")
     elseif not DefenseState.isInZone and wasInZone then
         LogFmt("Left defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
-        SendChatMessage(string.format("Defense paused (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+        SendChatMessage("You moved out of range! System's resetting. Get back to the painting -- fast!")
     end
 
     if DefenseState.isInZone then
@@ -104,11 +104,11 @@ local function CheckDefenseZone()
         local prevPct = math.floor(prevTime / DEFENSE_DURATION * 100)
         local currPct = math.floor(DefenseState.accumulatedTime / DEFENSE_DURATION * 100)
         if currPct >= 25 and prevPct < 25 then
-            SendChatMessage(string.format("Defense progress: 25%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+            SendChatMessage("Quarter cycle complete. Sensors are buying it so far. Keep holding.")
         elseif currPct >= 50 and prevPct < 50 then
-            SendChatMessage(string.format("Defense progress: 50%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+            SendChatMessage("Halfway there. You're doing great. Almost got it.")
         elseif currPct >= 75 and prevPct < 75 then
-            SendChatMessage(string.format("Defense progress: 75%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+            SendChatMessage("Three quarters. Hang tight -- we're in the home stretch.")
         end
 
         if DefenseState.accumulatedTime >= DEFENSE_DURATION then
@@ -162,6 +162,7 @@ local function HookManagersOffice()
             end
         else
             LogFmt("Defense not complete (%.1f/%.1fs), blocking interaction", DefenseState.accumulatedTime, DEFENSE_DURATION)
+            SendChatMessage("Not yet -- the grid is still active. Get back to the painting and hold your ground.")
         end
     end)
 
