@@ -21,6 +21,21 @@ local function LogFmt(Fmt, ...)
     print(string.format("[%s] " .. Fmt .. "\n", MOD_NAME, ...))
 end
 
+local function SendChatMessage(Msg)
+    pcall(function()
+        local chatInGame = FindFirstOf("SBZChatInGame")
+        if not chatInGame or not chatInGame:IsValid() then return end
+
+        local controller = FindFirstOf("PlayerController")
+        if not controller or not controller:IsValid() then return end
+
+        local playerState = controller.PlayerState
+        if not playerState or not playerState:IsValid() then return end
+
+        chatInGame:SendChatMessageToServer({PlayerState = playerState, Message = Msg})
+    end)
+end
+
 Log("Loading mod")
 LogFmt("Config: duration=%ds, interval=%dms", DEFENSE_DURATION, CHECK_INTERVAL)
 LogFmt("Config: box offset=%d, depth=%d, half extents=(%d, %d)", BOX_FORWARD_OFFSET, BOX_DEPTH, BOX_HALF_WIDTH, BOX_HALF_HEIGHT)
@@ -55,6 +70,7 @@ end
 local function OnDefenseComplete()
     DefenseState.defenseComplete = true
     LogFmt("Defense complete! Unlocking painting... (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
+    SendChatMessage(string.format("Defense complete! Painting unlocked! (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
 end
 
 local function CheckDefenseZone()
@@ -74,13 +90,26 @@ local function CheckDefenseZone()
 
     if DefenseState.isInZone and not wasInZone then
         LogFmt("Entered defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
+        SendChatMessage(string.format("Defense started (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
     elseif not DefenseState.isInZone and wasInZone then
         LogFmt("Left defense zone (%.1f/%.1fs)", DefenseState.accumulatedTime, DEFENSE_DURATION)
+        SendChatMessage(string.format("Defense paused (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
     end
 
     if DefenseState.isInZone then
         local deltaSec = GetWorldDeltaSeconds and GetWorldDeltaSeconds() or 1.0
+        local prevTime = DefenseState.accumulatedTime
         DefenseState.accumulatedTime = DefenseState.accumulatedTime + deltaSec
+
+        local prevPct = math.floor(prevTime / DEFENSE_DURATION * 100)
+        local currPct = math.floor(DefenseState.accumulatedTime / DEFENSE_DURATION * 100)
+        if currPct >= 25 and prevPct < 25 then
+            SendChatMessage(string.format("Defense progress: 25%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+        elseif currPct >= 50 and prevPct < 50 then
+            SendChatMessage(string.format("Defense progress: 50%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+        elseif currPct >= 75 and prevPct < 75 then
+            SendChatMessage(string.format("Defense progress: 75%% (%.0f/%.0fs)", DefenseState.accumulatedTime, DEFENSE_DURATION))
+        end
 
         if DefenseState.accumulatedTime >= DEFENSE_DURATION then
             OnDefenseComplete()
