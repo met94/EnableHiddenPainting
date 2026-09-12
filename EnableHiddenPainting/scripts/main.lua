@@ -1,5 +1,5 @@
 local MOD_NAME = "EnableHiddenPainting"
-local DEBUG_LOG = false
+local DEBUG_LOG = true
 
 local MANAGERS_OFFICE_CLASS = "R_ArtGallery_ManagersOffice_C"
 local PAINTING_ENTITY_PATH = "/Game/Prototype/Maps/ArtGallery/ArtGallery/G_ArtGallery/G_ArtGallery_Scripting.G_ArtGallery_Scripting:PersistentLevel.BP_InteractablePainting_Special"
@@ -201,7 +201,7 @@ local function OnHackComplete()
     pcall(function()
         ExecuteWithDelay(2000, function()
             ExecuteInGameThread(function()
-                SendChatMessage("<Notation>Hold on -- I'm seeing something else in the building inventory.</> There's a <Skills1>Shanda Latrell</> original on the floor below, near <Object>Exhibition Room E2</>. Nine figures easy. But it's got a <Bad>proximity security grid</> -- you'll need to stay close for about <Skills1>ten minutes</> while I loop the sensors. I'll mark the location.")
+                SendChatMessage("<Notation>Hold on -- I'm seeing something else in the building inventory. There's a </><Skills1>Shanda Latrell</><Notation> original on the floor below, near </><Object>Exhibition Room E2</><Notation>. Nine figures easy. But it's got a </><Bad>proximity security grid</><Notation> -- you'll need to stay close for about </><Skills1>ten minutes</><Notation> while I loop the sensors. I'll mark the location.</>")
                 StartDefenseTimer()
             end)
         end)
