@@ -10,7 +10,9 @@ local CHECK_INTERVAL = 1000
 local BOX_FORWARD_OFFSET = 10
 local BOX_DEPTH = 1100
 local BOX_HALF_WIDTH = 800
-local BOX_HALF_HEIGHT = 100
+local BOX_HALF_HEIGHT = 200
+
+local OnHackComplete
 
 local function Log(Msg)
     if not DEBUG_LOG then return end
@@ -22,19 +24,30 @@ local function LogFmt(Fmt, ...)
     print(string.format("[%s] " .. Fmt .. "\n", MOD_NAME, ...))
 end
 
+local function GetLevelName()
+    local UEHelpers = require("UEHelpers")
+    local World = UEHelpers.GetWorld()
+    if not World:IsValid() then return nil end
+
+    local GameplayStatics = StaticFindObject("/Script/Engine.Default__GameplayStatics")
+    if not GameplayStatics:IsValid() then return nil end
+
+    -- Parameters: WorldContextObject, bRemovePrefixString
+    local LevelName = GameplayStatics:GetCurrentLevelName(World, true)
+    return LevelName:ToString()
+end
+
 local function SendChatMessage(Msg)
-    pcall(function()
-        local chatInGame = FindFirstOf("SBZChatInGame")
-        if not chatInGame or not chatInGame:IsValid() then return end
+    local chatInGame = FindFirstOf("SBZChatInGame")
+    if not chatInGame or not chatInGame:IsValid() then return end
 
-        local controller = FindFirstOf("PlayerController")
-        if not controller or not controller:IsValid() then return end
+    local controller = FindFirstOf("PlayerController")
+    if not controller or not controller:IsValid() then return end
 
-        local playerState = controller.PlayerState
-        if not playerState or not playerState:IsValid() then return end
+    local playerState = controller.PlayerState
+    if not playerState or not playerState:IsValid() then return end
 
-        chatInGame:SendChatMessageToServer({PlayerState = playerState, Message = Msg})
-    end)
+    chatInGame:SendChatMessageToServer({PlayerState = playerState, Message = Msg})
 end
 
 Log("Loading mod")
@@ -50,6 +63,8 @@ local DefenseState = {
     timerHandle = nil
 }
 
+local ObjectiveHookIds = { preId = nil, postId = nil }
+
 local function ResetDefenseState()
     if DefenseState.timerHandle then
         CancelDelayedAction(DefenseState.timerHandle)
@@ -61,6 +76,33 @@ local function ResetDefenseState()
     DefenseState.defenseComplete = false
     DefenseState.timerHandle = nil
     Log("DefenseState reset")
+end
+
+local function RegisterObjectiveHook()
+    if ObjectiveHookIds.preId then return end
+    ObjectiveHookIds.preId, ObjectiveHookIds.postId = RegisterHook(
+        "/Script/Starbreeze.SBZMissionState:RewardCompleteExperienceObjective",
+        function(Context, ObjectiveName)
+            local objective = ObjectiveName:get():ToString()
+            LogFmt("Objective completed: %s", objective)
+            if objective == "search_manifest" then
+                OnHackComplete()
+            end
+        end
+    )
+    Log("Objective hook registered")
+end
+
+local function UnregisterObjectiveHook()
+    if not ObjectiveHookIds.preId then return end
+    UnregisterHook(
+        "/Script/Starbreeze.SBZMissionState:RewardCompleteExperienceObjective",
+        ObjectiveHookIds.preId,
+        ObjectiveHookIds.postId
+    )
+    ObjectiveHookIds.preId = nil
+    ObjectiveHookIds.postId = nil
+    Log("Objective hook unregistered")
 end
 
 local function IsInDefenseBox(playerLoc, entityLoc, forwardVec, rightVec)
@@ -83,16 +125,14 @@ local function IsInDefenseBox(playerLoc, entityLoc, forwardVec, rightVec)
 end
 
 local function TriggerRemoteDeploy()
-    pcall(function()
-        local office = FindFirstOf(MANAGERS_OFFICE_CLASS)
-        if office and office:IsValid() then
-            LogFmt("Found managers office: %s", office:GetFullName())
-            office:RemoteDeploy()
-            Log("RemoteDeploy called successfully")
-        else
-            Log("Managers office not found")
-        end
-    end)
+    local office = FindFirstOf(MANAGERS_OFFICE_CLASS)
+    if office and office:IsValid() then
+        LogFmt("Found managers office: %s", office:GetFullName())
+        office:RemoteDeploy()
+        Log("RemoteDeploy called successfully")
+    else
+        Log("Managers office not found")
+    end
 end
 
 local function OnDefenseComplete()
@@ -171,12 +211,12 @@ end
 local function StartDefenseTimer()
     if DefenseState.timerHandle then return end
     DefenseState.timerHandle = LoopInGameThreadWithDelay(CHECK_INTERVAL, function()
-        pcall(CheckDefenseZone)
+        CheckDefenseZone()
     end)
     Log("Defense timer started")
 end
 
-local function OnHackComplete()
+OnHackComplete = function()
     if DefenseState.defenseActive then
         Log("OnHackComplete: already active, skipping")
         return
@@ -198,28 +238,25 @@ local function OnHackComplete()
     DefenseState.defenseActive = true
     LogFmt("Found painting entity: %s", entity:GetFullName())
 
-    pcall(function()
-        ExecuteWithDelay(2000, function()
-            ExecuteInGameThread(function()
-                SendChatMessage("<Notation>Hold on -- I'm seeing something else in the building inventory. There's a </><Skills1>Shanda Latrell</><Notation> original on the floor below, near </><Object>Exhibition Room E2</><Notation>. Nine figures easy. But it's got a </><Bad>proximity security grid</><Notation> -- you'll need to stay close for about </><Skills1>ten minutes</><Notation> while I loop the sensors. I'll mark the location.</>")
-                StartDefenseTimer()
-            end)
+    ExecuteWithDelay(2000, function()
+        ExecuteInGameThread(function()
+            SendChatMessage("<Notation>Hold on -- I'm seeing something else in the building inventory. There's a </><Skills1>Shanda Latrell</><Notation> original on the floor below, near </><Object>Exhibition Room E2</><Notation>. Nine figures easy. But it's got a </><Bad>proximity security grid</><Notation> -- you'll need to stay close for about </><Skills1>ten minutes</><Notation> while I loop the sensors. I'll mark the location.</>")
+            StartDefenseTimer()
         end)
     end)
     Log("Hack detected, starting defense sequence")
 end
 
-RegisterHook("/Script/Starbreeze.SBZMissionState:RewardCompleteExperienceObjective", function(Context, ObjectiveName)
-    local objective = ObjectiveName:get():ToString()
-    LogFmt("Objective completed: %s", objective)
-    if objective == "search_manifest" then
-        OnHackComplete()
-    end
-end)
-
 RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnPlayableLevelInitialized", function(Context)
     Log("OnPlayableLevelInitialized fired")
     ResetDefenseState()
+    local levelName = GetLevelName()
+    LogFmt("Level name: %s", tostring(levelName))
+    if levelName == "ArtGallery" then
+        RegisterObjectiveHook()
+    else
+        UnregisterObjectiveHook()
+    end
 end)
 
 RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnRestartLevelStarted", function(Context)
@@ -227,4 +264,21 @@ RegisterHook("/Script/Starbreeze.SBZGameplayManager:OnRestartLevelStarted", func
     ResetDefenseState()
 end)
 
---TODO: reset state on unload?
+RegisterHook("/Script/Starbreeze.SBZGameStateMachine:RequestReturnToMainMenu", function(Context, Reason)
+    Log("RequestReturnToMainMenu fired")
+    --pcall(function()
+        --LogFmt("RequestReturnToMainMenu fired, Reason: %s", tostring(Reason:get()))
+    --end)
+    ResetDefenseState()
+    UnregisterObjectiveHook()
+end)
+
+RegisterHook("/Script/Starbreeze.SBZGameStateMachine:RequestMissionEnd", function(Context, RequestData)
+    Log("RequestMissionEnd fired")
+    --pcall(function()
+        --local data = RequestData:get()
+        --LogFmt("RequestMissionEnd fired, MissionResult: %s, OutroVariation: %s", tostring(data.MissionResult), tostring(data.OutroVariation))
+    --end)
+    ResetDefenseState()
+    UnregisterObjectiveHook()
+end)
