@@ -10,6 +10,25 @@ This mod lets you unlock the hidden painting on Art Gallery in loud, making the 
 4. You'll receive chat updates at 25%, 50%, and 75% progress
 5. Once complete, return to the manager's office to find the hidden release mechanism
 
+<details>
+<summary>Screenshots</summary>
+
+![Hack the computer to trigger the hidden painting event](Screenshots/hack_computer_message.png)
+
+![Defend your position near the painting](Screenshots/defending_painting.png)
+
+![Progress updates at 50%](Screenshots/defend_halfway.png)
+
+![Defense complete](Screenshots/defend_finish.png)
+
+![The hidden painting is now obtainable](Screenshots/painting_obtainable.png)
+
+![The secret painting](Screenshots/secret_painting.png)
+
+![Return to the hidden button in the manager's office](Screenshots/secret_button.png)
+
+</details>
+
 ## Setup
 
 This is a lua mod and not a pak mod. You need [UE4SS](https://modworkshop.net/mod/47771).
